@@ -1,0 +1,40 @@
+---
+- name: Remove sources.list
+  file:
+    state: absent
+    path: /etc/apt/sources.list
+
+- name: Configure repositories
+  apt_repository:
+    repo: "{{ item.repo }}"
+    filename: "{{ item.filename }}"
+  with_items: "{{ repositories }}"
+
+- name: Add repository keys
+  apt_key:
+    keyserver: "{{ item.keyserver | default(omit) }}"
+    id: "{{ item.id | default(omit) }}"
+    url: "{{ item.url | default(omit) }}"
+  with_items: "{{ repositories }}"
+
+- name: Register all sources
+  shell: ls -1 /etc/apt/sources.list.d/
+  register: sources
+  changed_when: False
+  check_mode: False
+
+- name: Set expected sources
+  set_fact:
+    expected: "{{ repositories | selectattr('filename', 'string') | map(attribute='filename') | unique | list }}"
+
+- name: Remove non-managed sources
+  file:
+    state: absent
+    path: /etc/apt/sources.list.d/{{ item }}
+  with_items: "{{ sources.stdout_lines }}"
+  when: item[:-5] not in expected
+
+- name: Update package list
+  apt:
+    update_cache: True
+    cache_valid_time: 3600

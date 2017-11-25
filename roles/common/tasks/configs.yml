@@ -1,0 +1,23 @@
+---
+
+- name: Setup inputrc
+  copy:
+    dest: /etc/inputrc
+    content: |
+      set input-meta on
+      set output-meta on
+      $if mode=emacs
+      "\e[1~": beginning-of-line
+      "\e[4~": end-of-line
+      "\e[3~": delete-char
+      "\e[2~": quoted-insert
+      "\e[5~": history-search-backward
+      "\e[6~": history-search-forward
+      $endif
+
+- name: Set locales
+  copy:
+    dest: /etc/locale.gen
+    content: |
+      en_US.UTF-8 UTF-8
+  notify: Update locales

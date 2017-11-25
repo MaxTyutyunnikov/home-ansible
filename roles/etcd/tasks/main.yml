@@ -1,0 +1,47 @@
+---
+
+- name: etcd container
+  docker_container:
+    name: etcd
+    image: gcr.io/etcd-development/etcd:v3.2.9
+    restart_policy: unless-stopped
+    network_mode: host
+    volumes:
+      - /etc/etcd/certs/:/certs/
+      - /var/lib/etcd/:/etcd-data/
+    env:
+      ETCDCTL_API: 3
+      ETCDCTL_INSECURE_TRANSPORT: false
+      ETCDCTL_CACERT: /certs/server_ca.crt
+      ETCDCTL_CERT: /certs/client.crt
+      ETCDCTL_KEY: /certs/client.key
+      ETCDCTL_ENDPOINTS: |-
+        {%- for host in groups['all'] -%}
+        https://{{ hostvars[host]['ansible_fqdn'] }}:2379
+        {%- if not loop.last -%},{%- endif -%}
+        {%- endfor -%}
+    entrypoint: etcd
+    command: |
+      --data-dir=/etcd-data
+      --name={{ ansible_hostname }}
+      --client-cert-auth
+      --trusted-ca-file=/certs/client_ca.crt
+      --cert-file=/certs/server.crt
+      --key-file=/certs/server.key
+      --peer-client-cert-auth
+      --peer-trusted-ca-file=/certs/peer_ca.crt
+      --peer-cert-file=/certs/peer.crt
+      --peer-key-file=/certs/peer.key
+      --initial-advertise-peer-urls=https://{{ ansible_fqdn }}:2380
+      --listen-peer-urls=https://{{ ansible_vlan10.ipv4.address }}:2380
+      --advertise-client-urls=https://{{ ansible_fqdn }}:2379
+      --listen-client-urls=https://{{ ansible_vlan10.ipv4.address }}:2379
+      --initial-cluster-state=new
+      --initial-cluster-token={{ etcd_cluster_token | default('cluster1') }}
+      --initial-cluster=
+      {%- for host in groups['all'] -%}
+      {{ host }}=https://{{ hostvars[host]['ansible_fqdn'] }}:2380
+      {%- if not loop.last -%},{%- endif -%}
+      {%- endfor -%}
+  vars:
+    ansible_python_interpreter: /opt/ansible/bin/python

@@ -1,0 +1,6 @@
+---
+
+- name: Restart etcd
+  docker_container:
+    name: etcd
+    restart: True

@@ -1,0 +1,8 @@
+---
+
+- name: Install roles
+  hosts: all
+  roles:
+    - common
+    - etcd
+  become: True
