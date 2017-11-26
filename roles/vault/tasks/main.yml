@@ -1,0 +1,61 @@
+---
+- include_tasks: certs.yml
+  with_items:
+    - client
+    - server
+
+- name: Ensure vault config directory exists
+  file:
+    state: directory
+    path: /etc/vault/
+
+- name: Vault config
+  copy:
+    dest: /etc/vault/config.hcl
+    content: |
+        api_addr = "https://{{ ansible_fqdn }}:8200"
+        storage "etcd" {
+          address = "
+            {%- for host in groups['all'] -%}
+            https://{{ hostvars[host]['ansible_fqdn'] }}:2379
+            {%- if not loop.last -%},{%- endif -%}
+            {%- endfor -%}
+          "
+          ha_enabled = "true"
+          username = "{{ etcd_username | default('vault') }}"
+          password = "{{ etcd_password | default('password') }}"
+          tls_ca_file = "/certs/server_ca.crt"
+          tls_cert_file = "/certs/client.crt"
+          tls_key_file = "/certs/client.key"
+        }
+        listener "tcp" {
+          address = "{{ ansible_vlan10.ipv4.address }}:8200"
+          tls_require_and_verify_client_cert = true
+          tls_cert_file = "/certs/server.crt"
+          tls_key_file = "/certs/server.key"
+          tls_client_ca_file = "/certs/client_ca.crt"
+        }
+
+- name: vault container
+  docker_container:
+    name: vault
+    image: vault:0.9.0
+    restart_policy: unless-stopped
+    network_mode: host
+    capabilities:
+      - IPC_LOCK
+    volumes:
+      - /etc/certs/vault/:/certs/
+      - /etc/vault/:/vault/config/
+      - /var/lib/vault/:/vault/file/
+      - /var/log/vault/:/vault/logs/
+    env:
+      VAULT_ADDR: https://{{ ansible_fqdn }}:8200
+      VAULT_CACERT: /certs/server_ca.crt
+      VAULT_CLIENT_CERT: /certs/client.crt
+      VAULT_CLIENT_KEY: /certs/client.key
+    command: server
+  vars:
+    ansible_python_interpreter: /opt/ansible/bin/python
+  tags: test
+

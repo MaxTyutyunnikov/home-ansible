@@ -1,0 +1,27 @@
+---
+
+- name: vault container
+  docker_container:
+    name: vault
+    image: vault:0.9.0
+    restart_policy: unless-stopped
+    network_mode: host
+    capabilities: IPC_LOCK
+    env:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_DEV_LISTEN_ADDRESS: 127.0.0.1:8200
+      VAULT_DEV_ROOT_TOKEN_ID: secret
+
+- name: Auth with vault
+  command: docker exec vault vault auth secret
+  changed_when: False
+
+- name: Mount pki
+  command: docker exec vault vault mount pki
+  register: mount_result
+  failed_when:
+    - ( "'Successfully mounted' not in mount_result.stdout" or
+        "'existing mount' not in mount_result.stdout" )
+    - mount_result.rc not in [0, 2]
+  changed_when:
+    - "'Successfully mounted' in mount_result.stdout"

@@ -1,0 +1,34 @@
+---
+
+- name: Ensure etcd certs directory exists
+  file:
+    state: directory
+    path: /etc/certs/etcd/
+
+- name: Check if {{ item }}.key exists
+  stat:
+    path: /etc/certs/etcd/{{ item }}.key
+  register: cert_exists
+
+- name: Get {{ item }} cert
+  block:
+    - name: Generate {{ item }} cert
+      local_action: >
+        command docker exec vault vault write bootstrap-pki/issue/{{ item }}
+          common_name={{ ansible_fqdn }}
+          ip_sans={{ ansible_vlan10.ipv4.address }}
+          ttl=1h
+      register: cert_result
+    - name: Write {{ item }} ca
+      copy:
+        dest: /etc/certs/etcd/{{ item }}_ca.crt
+        content: "{{ cert_result.stdout | vault_cert('ca') }}"
+    - name: Write {{ item }} cert
+      copy:
+        dest: /etc/certs/etcd/{{ item }}.crt
+        content: "{{ cert_result.stdout | vault_cert('cert') }}"
+    - name: Write {{ item }} key
+      copy:
+        dest: /etc/certs/etcd/{{ item }}.key
+        content: "{{ cert_result.stdout | vault_cert('key') }}"
+  when: not cert_exists.stat.exists

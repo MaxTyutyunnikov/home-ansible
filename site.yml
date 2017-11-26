@@ -1,8 +1,16 @@
 ---
 
+- name: Setup local vault
+  hosts: localhost
+  connection: local
+  roles:
+    - local_vault
+  become: True
+
 - name: Install roles
-  hosts: all
+  hosts: all:!localhost
   roles:
     - common
     - etcd
+    - { role: vault, tags: test }
   become: True

@@ -1,0 +1,6 @@
+---
+
+- name: Restart vault
+  docker_container:
+    name: vault
+    restart: True

@@ -1,4 +1,9 @@
 ---
+- include_tasks: certs.yml
+  with_items:
+    - client
+    - peer
+    - server
 
 - name: etcd container
   docker_container:
@@ -7,7 +12,7 @@
     restart_policy: unless-stopped
     network_mode: host
     volumes:
-      - /etc/etcd/certs/:/certs/
+      - /etc/certs/etcd/:/certs/
       - /var/lib/etcd/:/etcd-data/
     env:
       ETCDCTL_API: 3

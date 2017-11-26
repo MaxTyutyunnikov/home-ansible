@@ -1,0 +1,67 @@
+---
+
+- name: Auth with vault
+  local_action: command docker exec vault vault auth secret
+  changed_when: False
+  run_once: True
+
+- name: Mount bootstrap-pki
+  local_action: command docker exec vault vault mount --path=bootstrap-pki pki
+  register: mount_result
+  failed_when:
+    - ( 'Successfully mounted' not in mount_result.stdout )
+    - ( 'existing mount' not in mount_result.stdout )
+    - mount_result.rc not in [0, 2]
+  changed_when:
+    - ( 'Successfully mounted' in mount_result.stdout )
+  run_once: True
+
+- name: Generate CA
+  local_action: >
+      command docker exec vault vault write bootstrap-pki/root/generate/internal
+        common_name="Bootstrap CA"
+        ttl=87600h
+        key_bits=4096
+        exclude_cn_from_sans=true
+  register: ca_result
+  failed_when:
+    - ( 'serial_number' not in ca_result.stdout )
+    - ( 'Success' not in ca_result.stdout )
+  changed_when:
+    - ( 'serial_number' in ca_result.stdout )
+  run_once: True
+
+- name: Write roles for servers
+  local_action: >
+      command docker exec vault vault write bootstrap-pki/roles/server
+        allow_localhost=false
+        client_flag=false
+        allow_any_name=true
+  register: server_role_result
+  failed_when:
+    - ( 'Success' not in server_role_result.stdout )
+  changed_when: False
+  run_once: True
+
+- name: Write roles for clients
+  local_action: >
+      command docker exec vault vault write bootstrap-pki/roles/client
+        allow_localhost=false
+        server_flag=false
+        allow_any_name=true
+  register: client_role_result
+  failed_when:
+    - ( 'Success' not in client_role_result.stdout )
+  changed_when: False
+  run_once: True
+
+- name: Write roles for peers
+  local_action: >
+      command docker exec vault vault write bootstrap-pki/roles/peer
+        allow_localhost=false
+        allow_any_name=true
+  register: peer_role_result
+  failed_when:
+    - ( 'Success' not in peer_role_result.stdout )
+  changed_when: False
+  run_once: True
