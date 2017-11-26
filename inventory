@@ -1,0 +1,8 @@
+[bootstrap_vault]
+firewall
+
+[controllers]
+server[01:03]
+
+[workers]
+server[01:03]

@@ -17,7 +17,7 @@
         command docker exec vault vault write bootstrap-pki/issue/{{ item }}
           common_name={{ ansible_fqdn }}
           ip_sans={{ ansible_vlan10.ipv4.address }}
-          ttl=1h
+          ttl=768h
       register: cert_result
     - name: Write {{ item }} ca
       copy:

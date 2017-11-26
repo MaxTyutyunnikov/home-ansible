@@ -1,16 +1,16 @@
 ---
 
-- name: Setup local vault
-  hosts: localhost
-  connection: local
+- name: Setup bootstrap vault
+  hosts: bootstrap_vault
   roles:
-    - local_vault
+    - { role: common, tags: common }
+    - { role: bootstrap_vault, tags: bootstrap_vault }
   become: True
 
-- name: Install roles
-  hosts: all:!localhost
+- name: Setup controllers
+  hosts: controllers
   roles:
-    - common
-    - etcd
-    - { role: vault, tags: test }
+    - { role: common, tags: common }
+    - { role: etcd, tags: etcd }
+    - { role: vault, tags: vault }
   become: True

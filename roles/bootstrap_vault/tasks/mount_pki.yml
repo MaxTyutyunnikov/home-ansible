@@ -1,0 +1,28 @@
+---
+
+- name: Mount {{ mount_point }}-pki
+  command: docker exec vault vault mount --path={{ mount_point }}-pki pki
+  register: mount_result
+  failed_when:
+    - ( 'Successfully mounted' not in mount_result.stdout )
+    - ( 'existing mount' not in mount_result.stdout )
+    - mount_result.rc not in [0, 2]
+  changed_when:
+    - ( 'Successfully mounted' in mount_result.stdout )
+  run_once: True
+
+- name: Generate {{ mount_point }} CA
+  command: >
+      docker exec vault vault write {{ mount_point }}-pki/root/generate/internal
+        common_name="Bootstrap {{ mount_point }} CA"
+        ttl=87600h
+        key_bits=4096
+        exclude_cn_from_sans=true
+  register: ca_result
+  failed_when:
+    - ( 'serial_number' not in ca_result.stdout )
+    - ( 'Success' not in ca_result.stdout )
+  changed_when:
+    - ( 'serial_number' in ca_result.stdout )
+  run_once: True
+

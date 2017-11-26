@@ -1,0 +1,79 @@
+---
+
+- name: vault container
+  docker_container:
+    name: vault
+    image: vault:0.9.0
+    restart_policy: unless-stopped
+    network_mode: host
+    capabilities: IPC_LOCK
+    env:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_DEV_LISTEN_ADDRESS: 127.0.0.1:8200
+      VAULT_DEV_ROOT_TOKEN_ID: "{{ vault_secret }}"
+  vars:
+    ansible_python_interpreter: /opt/ansible/bin/python
+
+- name: Wait for vault to start listening
+  wait_for:
+    port: 8200
+
+- name: Auth with vault
+  command: docker exec vault vault auth {{ vault_secret }}
+  changed_when: False
+
+- include_tasks: mount_pki.yml
+  loop_control:
+    loop_var: mount_point
+  with_items:
+    - etcd-client
+    - etcd-peer
+    - etcd-server
+    - vault-client
+    - vault-server
+
+- name: Write roles for clients
+  command: >
+      docker exec vault vault write {{ item }}-pki/roles/client
+        allow_localhost=false
+        allow_ip_sans=false
+        server_flag=false
+        allow_any_name=true
+  register: client_role_result
+  failed_when:
+    - ( 'Success' not in client_role_result.stdout )
+  changed_when: False
+  run_once: True
+  with_items:
+    - etcd-client
+    - vault-client
+
+- name: Write roles for peers
+  command: >
+      docker exec vault vault write {{ item }}-pki/roles/peer
+        allow_localhost=false
+        allow_ip_sans=false
+        allow_any_name=true
+  register: peer_role_result
+  failed_when:
+    - ( 'Success' not in peer_role_result.stdout )
+  changed_when: False
+  run_once: True
+  with_items:
+    - etcd-peer
+
+- name: Write roles for servers
+  command: >
+      docker exec vault vault write {{ item }}-pki/roles/server
+        allow_localhost=false
+        allow_ip_sans=false
+        client_flag=false
+        allow_any_name=true
+  register: server_role_result
+  failed_when:
+    - ( 'Success' not in server_role_result.stdout )
+  changed_when: False
+  run_once: True
+  with_items:
+    - etcd-server
+    - vault-server
