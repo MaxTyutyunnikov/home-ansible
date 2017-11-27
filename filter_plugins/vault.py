@@ -1,40 +1,26 @@
 #!/usr/bin/env python
 
-import re
+def parse_output(data, key):
+    key = 'certificate'
 
-def split_output(data, match_type):
-    if match_type not in ['ca', 'cert', 'key']:
-        raise Exception
+    ret = {}
+    for line in data[2:]:
+        if '\t' in line:
+            split = line.split('\t')
+            k = split[0].strip()
+            v = split[1]
+            ret[k] = v + '\n'
+            ret['latest'] = k
+        else:
+            ret[ret['latest']] += line + '\n'
+    del ret['latest']
 
-    if match_type == 'ca':
-        r = re.compile(
-            r'issuing_ca\s+(-----BEGIN CERTIFICATE-----'
-             '.*?'
-             '-----END CERTIFICATE-----)',
-            re.DOTALL
-        )
-    elif match_type == 'cert':
-        r = re.compile(
-            r'certificate\s+(-----BEGIN CERTIFICATE-----'
-             '.*?'
-             '-----END CERTIFICATE-----)',
-            re.DOTALL
-        )
-    elif match_type == 'key':
-        r = re.compile(
-            r'private_key\s+(-----BEGIN RSA PRIVATE KEY-----'
-             '.*'
-             '-----END RSA PRIVATE KEY-----)',
-            re.DOTALL
-        )
-
-    match = r.search(data)
-    if match:
-        return match.group(1) + '\n'
+    if key in ret:
+        return ret[key]
     else:
         raise Exception
 
 
 class FilterModule(object):
     def filters(self):
-        return {'vault_cert': split_output}
+        return {'vault_parse': parse_output}

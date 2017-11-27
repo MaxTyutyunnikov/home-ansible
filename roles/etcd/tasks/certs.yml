@@ -1,14 +1,33 @@
 ---
 
-- name: Ensure etcd certs directory exists
+- name: Ensure bootstrap-etcd certs directory exists
   file:
     state: directory
     path: /etc/certs/bootstrap-etcd/
 
-- name: Check if {{ item }}.key exists
-  stat:
-    path: /etc/certs/etcd/{{ item }}.key
-  register: cert_exists
+- name: Register current {{ item }} ca
+  set_fact:
+    ca_cert: "{{ ansible_local.get(item + '-etcd', {}).get('ca') }}"
+
+- name: Fetch {{ item }} ca
+  command: >
+    docker exec vault vault read etcd-{{ item }}-pki/cert/ca
+  register: ca_result
+  delegate_to: "{{ groups['bootstrap_vault'][0] }}"
+
+- include_tasks: write_fact.yml
+  loop_control:
+    loop_var: fact
+  with_items:
+    - location: bootstrap-etcd-{{ item }}
+      key: ca
+      data: "{{ ca_result.stdout_lines | vault_parse('certificate') }}"
+
+- name: Reload facts
+  setup:
+
+- debug:
+    msg: "{{ ansible_local.certs['bootstrap-etcd-' + item]['ca']  }}"
 
 - name: Get {{ item }} cert
   block:
@@ -21,14 +40,14 @@
       register: cert_result
     - name: Write {{ item }} ca
       copy:
-        dest: /etc/certs/etcd/{{ item }}_ca.crt
+        dest: /etc/certs/bootstrap-etcd/{{ item }}_ca.crt
         content: "{{ cert_result.stdout | vault_cert('ca') }}"
     - name: Write {{ item }} cert
       copy:
-        dest: /etc/certs/etcd/{{ item }}.crt
+        dest: /etc/certs/bootstrap-etcd/{{ item }}.crt
         content: "{{ cert_result.stdout | vault_cert('cert') }}"
     - name: Write {{ item }} key
       copy:
-        dest: /etc/certs/etcd/{{ item }}.key
+        dest: /etc/certs/bootstrap-etcd/{{ item }}.key
         content: "{{ cert_result.stdout | vault_cert('key') }}"
-  when: not cert_exists.stat.exists
+  when: not ansible_local.get('bootstrap_etcd', {}).get(item, {}).get('cert')
