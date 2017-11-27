@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 def parse_output(data, key):
-    key = 'certificate'
-
     ret = {}
     for line in data[2:]:
         if '\t' in line:

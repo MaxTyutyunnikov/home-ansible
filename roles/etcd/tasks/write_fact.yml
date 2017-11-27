@@ -1,6 +1,6 @@
 ---
 
-- name: Update bootstrap-etcd {{ item }} {{ type }} fact
+- name: Update bootstrap-etcd {{ item }} {{ fact.key }} fact
   json_file:
     path: /etc/ansible/facts.d/certs.fact
     location: "{{ fact.location }}"

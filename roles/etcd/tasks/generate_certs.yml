@@ -1,0 +1,53 @@
+---
+
+# TODO(SamYaple): Validate current ca is the same as new ca
+- name: Register current {{ item }} ca
+  set_fact:
+    ca_cert: "{{ ansible_local.get(item + '-etcd', {}).get('ca') }}"
+
+- name: Fetch {{ item }} ca
+  command: >
+    docker exec vault vault read etcd-{{ item }}-pki/cert/ca
+  register: ca_result
+  changed_when: False
+  delegate_to: "{{ groups['bootstrap_vault'][0] }}"
+
+- include_tasks: write_fact.yml
+  when: not ca_cert
+  loop_control:
+    loop_var: fact
+  with_items:
+    - location: bootstrap-etcd-{{ item }}
+      key: ca
+      data: "{{ ca_result.stdout_lines | vault_parse('certificate') }}"
+
+# TODO(SamYaple): Check cert expiry and regen if needed
+- name: Register current {{ item }} cert
+  set_fact:
+    crt: "{{ ansible_local.certs.get('bootstrap-etcd-' + item, {}).get('crt') }}"
+
+- name: Install new {{ item }} cert and key
+  block:
+    - name: Generate {{ item }} cert
+      command: >
+        docker exec vault vault write etcd-{{ item }}-pki/issue/{{ item }}
+          common_name={{ ansible_fqdn }}
+          ttl=1h
+      register: cert_result
+      delegate_to: "{{ groups['bootstrap_vault'][0] }}"
+
+    - include_tasks: write_fact.yml
+      loop_control:
+        loop_var: fact
+      with_items:
+        - location: bootstrap-etcd-{{ item }}
+          key: crt
+          data: "{{ cert_result.stdout_lines | vault_parse('certificate') }}"
+        - location: bootstrap-etcd-{{ item }}
+          key: key
+          data: "{{ cert_result.stdout_lines | vault_parse('private_key') }}"
+  when: not crt or regenerate_certs
+
+- name: Reload local facts
+  setup:
+    gather_subset: "!all,!min,local"
