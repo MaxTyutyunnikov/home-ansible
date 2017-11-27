@@ -1,0 +1,32 @@
+---
+# TODO(SamYaple): Restructure this to remove duplication and multiple fact reloads
+# TODO(SamYaple): Validate current ca is the same as new ca
+- name: Register current {{ ca_cert_type }} ca
+  set_fact:
+    ca_cert: "{{ ansible_local.get('certs', {}).get('-'.join([ca_cert_type, service]), {}).get('ca') }}"
+
+- name: Fetch {{ ca_cert_type }} ca
+  command: >
+    docker exec vault vault read {{ service }}-{{ ca_cert_type }}-pki/cert/ca
+  register: ca_result
+  changed_when: False
+  delegate_to: "{{ delegate_host | default(omit) }}"
+
+- include_tasks: write_fact.yml
+  when: not ca_cert
+  loop_control:
+    loop_var: fact
+  with_items:
+    - location: "{{ prefix }}{{ service }}-{{ ca_cert_type }}"
+      key: ca
+      data: "{{ ca_result.stdout_lines | vault_parse('certificate') }}"
+
+- name: Reload local facts
+  setup:
+    gather_subset: "!all,!min,local"
+
+- name: Write {{ prefix }}{{ service }} {{ ca_cert_type }} ca
+  copy:
+    dest: "{{ certs_path }}/{{ service }}-{{ ca_cert_type }}-ca.crt"
+    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, ca_cert_type)].ca }}"
+

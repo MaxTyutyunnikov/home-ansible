@@ -1,8 +1,25 @@
 ---
-- include_tasks: certs.yml
+- include_role:
+    name: certs
   with_items:
     - client
     - server
+  vars:
+    service: vault
+    delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+  loop_control:
+    loop_var: cert_type
+
+- include_role:
+    name: certs
+  with_items:
+    - client
+  vars:
+    service: etcd
+    prefix: vault-
+    delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+  loop_control:
+    loop_var: cert_type
 
 - name: Ensure vault config directory exists
   file:
@@ -16,24 +33,24 @@
         api_addr = "https://{{ ansible_fqdn }}:8200"
         storage "etcd" {
           address = "
-            {%- for host in groups['all'] -%}
-            https://{{ hostvars[host]['ansible_fqdn'] }}:2379
+            {%- for host in groups['controllers'] -%}
+            https://{{ hostvars[host]['ansible_fqdn'] }}:2389
             {%- if not loop.last -%},{%- endif -%}
             {%- endfor -%}
           "
           ha_enabled = "true"
-          username = "{{ etcd_username | default('vault') }}"
-          password = "{{ etcd_password | default('password') }}"
-          tls_ca_file = "/certs/server_ca.crt"
-          tls_cert_file = "/certs/client.crt"
-          tls_key_file = "/certs/client.key"
+          #username = "{{ etcd_username | default('vault') }}"
+          #password = "{{ etcd_password | default('password') }}"
+          tls_ca_file = "/certs/etcd-server-ca.crt"
+          tls_cert_file = "/certs/etcd-client.crt"
+          tls_key_file = "/certs/etcd-client.key"
         }
         listener "tcp" {
           address = "{{ ansible_vlan10.ipv4.address }}:8200"
           tls_require_and_verify_client_cert = true
-          tls_cert_file = "/certs/server.crt"
-          tls_key_file = "/certs/server.key"
-          tls_client_ca_file = "/certs/client_ca.crt"
+          tls_cert_file = "/certs/vault-server.crt"
+          tls_key_file = "/certs/vault-server.key"
+          tls_client_ca_file = "/certs/vault-client-ca.crt"
         }
 
 - name: vault container
@@ -45,17 +62,15 @@
     capabilities:
       - IPC_LOCK
     volumes:
-      - /etc/certs/vault/:/certs/
+      - "{{ certs_path }}/:/certs/"
       - /etc/vault/:/vault/config/
       - /var/lib/vault/:/vault/file/
       - /var/log/vault/:/vault/logs/
     env:
       VAULT_ADDR: https://{{ ansible_fqdn }}:8200
-      VAULT_CACERT: /certs/server_ca.crt
-      VAULT_CLIENT_CERT: /certs/client.crt
-      VAULT_CLIENT_KEY: /certs/client.key
+      VAULT_CACERT: /certs/vault-server-ca.crt
+      VAULT_CLIENT_CERT: /certs/vault-client.crt
+      VAULT_CLIENT_KEY: /certs/vault-client.key
     command: server
   vars:
     ansible_python_interpreter: /opt/ansible/bin/python
-  tags: test
-

@@ -1,26 +1,5 @@
 ---
 
-# TODO(SamYaple): Validate current ca is the same as new ca
-- name: Register current {{ cert_type }} ca
-  set_fact:
-    ca_cert: "{{ ansible_local.get('certs', {}).get('-'.join([cert_type, service]), {}).get('ca') }}"
-
-- name: Fetch {{ cert_type }} ca
-  command: >
-    docker exec vault vault read {{ service }}-{{ cert_type }}-pki/cert/ca
-  register: ca_result
-  changed_when: False
-  delegate_to: "{{ delegate_host | default(omit) }}"
-
-- include_tasks: write_fact.yml
-  when: not ca_cert
-  loop_control:
-    loop_var: fact
-  with_items:
-    - location: "{{ prefix }}{{ service }}-{{ cert_type }}"
-      key: ca
-      data: "{{ ca_result.stdout_lines | vault_parse('certificate') }}"
-
 # TODO(SamYaple): Check cert expiry and regen if needed
 - name: Register current {{ cert_type }} cert
   set_fact:

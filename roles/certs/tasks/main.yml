@@ -1,5 +1,25 @@
 ---
 
+- name: Ensure {{ prefix }}{{ service }} certs directory exists
+  file:
+    state: directory
+    path: "{{ certs_path }}"
+
+- include_tasks: ca_cert.yml
+  with_items:
+    - client
+    - server
+  loop_control:
+    loop_var: ca_cert_type
+  when: cert_type != 'peer'
+
+- include_tasks: ca_cert.yml
+  with_items:
+    - peer
+  loop_control:
+    loop_var: ca_cert_type
+  when: cert_type == 'peer'
+
 - import_tasks: generate_certs.yml
   when: generate_certs
 
@@ -7,22 +27,12 @@
   setup:
     gather_subset: "!all,!min,local"
 
-- name: Ensure {{ prefix }}{{ service }} certs directory exists
-  file:
-    state: directory
-    path: /etc/certs/{{ prefix }}{{ service }}/
-
-- name: Write {{ prefix }}{{ service }} {{ cert_type }} ca
-  copy:
-    dest: /etc/certs/{{ prefix }}{{ service }}/{{ cert_type }}_ca.crt
-    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, cert_type)].ca }}"
-
 - name: Write {{ prefix }}{{ service }} {{ cert_type }} cert
   copy:
-    dest: /etc/certs/{{ prefix }}{{ service }}/{{ cert_type }}.crt
+    dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.crt"
     content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, cert_type)].crt }}"
 
 - name: Write {{ prefix }}{{ service }} {{ cert_type }} key
   copy:
-    dest: /etc/certs/{{ prefix }}{{ service }}/{{ cert_type }}.key
+    dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.key"
     content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, cert_type)].key }}"

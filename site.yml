@@ -3,8 +3,10 @@
 - name: Setup bootstrap vault
   hosts: bootstrap_vault
   roles:
-    - { role: common, tags: common }
-    - { role: bootstrap_vault, tags: bootstrap_vault }
+    - role: common
+      tags: common
+    - role: bootstrap_vault
+      tags: bootstrap_vault
   become: True
 
 - name: Setup controllers
@@ -16,8 +18,8 @@
       tags: etcd
       vars:
         delegate_host: "{{ groups['bootstrap_vault'][0] }}"
-        prefix: bootstrap-
-        cluster_token: bootstrap
+        prefix: vault-
+        cluster_token: vault
         client_port: 2389
         peer_port: 2390
     - role: vault
