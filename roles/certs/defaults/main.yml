@@ -1,4 +1,5 @@
 ---
 
+prefix: ''
 generate_certs: True
 regenerate_certs: False

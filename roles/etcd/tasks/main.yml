@@ -1,9 +1,12 @@
 ---
-- include_tasks: certs.yml
+- include_role:
+    name: certs
   with_items:
     - client
     - peer
     - server
+  loop_control:
+    loop_var: cert_type
 
 - name: etcd container
   docker_container:
@@ -12,7 +15,7 @@
     restart_policy: unless-stopped
     network_mode: host
     volumes:
-      - /etc/certs/etcd/:/certs/
+      - /etc/certs/{{ prefix }}etcd/:/certs/
       - /var/lib/etcd/:/etcd-data/
     env:
       ETCDCTL_API: 3
@@ -21,12 +24,12 @@
       ETCDCTL_CERT: /certs/client.crt
       ETCDCTL_KEY: /certs/client.key
       ETCDCTL_ENDPOINTS: |-
-        {%- for host in groups['all'] -%}
+        {%- for host in groups['controllers'] -%}
         https://{{ hostvars[host]['ansible_fqdn'] }}:2379
         {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}
     entrypoint: etcd
-    command: |
+    command: >
       --data-dir=/etcd-data
       --name={{ ansible_hostname }}
       --client-cert-auth
@@ -44,7 +47,7 @@
       --initial-cluster-state=new
       --initial-cluster-token={{ etcd_cluster_token | default('cluster1') }}
       --initial-cluster=
-      {%- for host in groups['all'] -%}
+      {%- for host in groups['controllers'] -%}
       {{ host }}=https://{{ hostvars[host]['ansible_fqdn'] }}:2380
       {%- if not loop.last -%},{%- endif -%}
       {%- endfor -%}

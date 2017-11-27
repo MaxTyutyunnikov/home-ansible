@@ -10,7 +10,13 @@
 - name: Setup controllers
   hosts: controllers
   roles:
-    - { role: common, tags: common }
-    - { role: etcd, tags: etcd }
-    - { role: vault, tags: vault }
+    - role: common
+      tags: common
+    - role: etcd
+      tags: etcd
+      vars:
+        prefix: bootstrap-
+        delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+    - role: vault
+      tags: vault
   become: True

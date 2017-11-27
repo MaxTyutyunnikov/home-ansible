@@ -1,0 +1,28 @@
+---
+
+- import_tasks: generate_certs.yml
+  when: generate_certs
+
+- name: Reload local facts
+  setup:
+    gather_subset: "!all,!min,local"
+
+- name: Ensure {{ prefix }}etcd certs directory exists
+  file:
+    state: directory
+    path: /etc/certs/{{ prefix }}etcd/
+
+- name: Write {{ prefix }}etcd {{ cert_type }} ca
+  copy:
+    dest: /etc/certs/{{ prefix }}etcd/{{ cert_type }}_ca.crt
+    content: "{{ ansible_local.certs[prefix + 'etcd-' + cert_type].ca }}"
+
+- name: Write {{ prefix }}etcd {{ cert_type }} cert
+  copy:
+    dest: /etc/certs/{{ prefix }}etcd/{{ cert_type }}.crt
+    content: "{{ ansible_local.certs[prefix + 'etcd-' + cert_type].crt }}"
+
+- name: Write {{ prefix }}etcd {{ cert_type }} key
+  copy:
+    dest: /etc/certs/{{ prefix }}etcd/{{ cert_type }}.key
+    content: "{{ ansible_local.certs[prefix + 'etcd-' + cert_type].key }}"
