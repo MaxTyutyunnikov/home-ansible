@@ -1,3 +1,5 @@
 ---
 
-prefix: ''
+client_port: 2379
+peer_port: 2380
+cluster_token: cluster1

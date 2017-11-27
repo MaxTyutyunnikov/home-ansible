@@ -3,11 +3,11 @@
 # TODO(SamYaple): Validate current ca is the same as new ca
 - name: Register current {{ cert_type }} ca
   set_fact:
-    ca_cert: "{{ ansible_local.get('certs', {}).get(cert_type + '-etcd', {}).get('ca') }}"
+    ca_cert: "{{ ansible_local.get('certs', {}).get('-'.join([cert_type, service]), {}).get('ca') }}"
 
 - name: Fetch {{ cert_type }} ca
   command: >
-    docker exec vault vault read etcd-{{ cert_type }}-pki/cert/ca
+    docker exec vault vault read {{ service }}-{{ cert_type }}-pki/cert/ca
   register: ca_result
   changed_when: False
   delegate_to: "{{ delegate_host | default(omit) }}"
@@ -17,20 +17,20 @@
   loop_control:
     loop_var: fact
   with_items:
-    - location: "{{ prefix }}etcd-{{ cert_type }}"
+    - location: "{{ prefix }}{{ service }}-{{ cert_type }}"
       key: ca
       data: "{{ ca_result.stdout_lines | vault_parse('certificate') }}"
 
 # TODO(SamYaple): Check cert expiry and regen if needed
 - name: Register current {{ cert_type }} cert
   set_fact:
-    crt: "{{ ansible_local.get('certs', {}).get(prefix + 'etcd-' + cert_type, {}).get('crt') }}"
+    crt: "{{ ansible_local.get('certs', {}).get('{}{}-{}'.format(prefix, service, cert_type), {}).get('crt') }}"
 
 - name: Install new {{ cert_type }} cert and key
   block:
     - name: Generate {{ cert_type }} cert
       command: >
-        docker exec vault vault write etcd-{{ cert_type }}-pki/issue/{{ cert_type }}
+        docker exec vault vault write {{ service }}-{{ cert_type }}-pki/issue/{{ cert_type }}
           common_name={{ ansible_fqdn }}
           ttl=1h
       register: cert_result
@@ -40,10 +40,10 @@
       loop_control:
         loop_var: fact
       with_items:
-        - location: "{{ prefix }}etcd-{{ cert_type }}"
+        - location: "{{ prefix }}{{ service }}-{{ cert_type }}"
           key: crt
           data: "{{ cert_result.stdout_lines | vault_parse('certificate') }}"
-        - location: "{{ prefix }}etcd-{{ cert_type }}"
+        - location: "{{ prefix }}{{ service }}-{{ cert_type }}"
           key: key
           data: "{{ cert_result.stdout_lines | vault_parse('private_key') }}"
   when: not crt or regenerate_certs

@@ -5,6 +5,8 @@
     - client
     - peer
     - server
+  vars:
+    service: etcd
   loop_control:
     loop_var: cert_type
 
@@ -25,7 +27,7 @@
       ETCDCTL_KEY: /certs/client.key
       ETCDCTL_ENDPOINTS: |-
         {%- for host in groups['controllers'] -%}
-        https://{{ hostvars[host]['ansible_fqdn'] }}:2379
+        https://{{ hostvars[host]['ansible_fqdn'] }}:{{ client_port }}
         {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}
     entrypoint: etcd
@@ -40,15 +42,15 @@
       --peer-trusted-ca-file=/certs/peer_ca.crt
       --peer-cert-file=/certs/peer.crt
       --peer-key-file=/certs/peer.key
-      --initial-advertise-peer-urls=https://{{ ansible_fqdn }}:2380
-      --listen-peer-urls=https://{{ ansible_vlan10.ipv4.address }}:2380
-      --advertise-client-urls=https://{{ ansible_fqdn }}:2379
-      --listen-client-urls=https://{{ ansible_vlan10.ipv4.address }}:2379
+      --initial-advertise-peer-urls=https://{{ ansible_fqdn }}:{{ peer_port }}
+      --listen-peer-urls=https://{{ ansible_vlan10.ipv4.address }}:{{ peer_port }}
+      --advertise-client-urls=https://{{ ansible_fqdn }}:{{ client_port }}
+      --listen-client-urls=https://{{ ansible_vlan10.ipv4.address }}:{{ client_port }}
       --initial-cluster-state=new
-      --initial-cluster-token={{ etcd_cluster_token | default('cluster1') }}
+      --initial-cluster-token={{ cluster_token }}
       --initial-cluster=
       {%- for host in groups['controllers'] -%}
-      {{ host }}=https://{{ hostvars[host]['ansible_fqdn'] }}:2380
+      {{ host }}=https://{{ hostvars[host]['ansible_fqdn'] }}:{{ peer_port }}
       {%- if not loop.last -%},{%- endif -%}
       {%- endfor -%}
   vars:

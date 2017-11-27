@@ -15,8 +15,11 @@
     - role: etcd
       tags: etcd
       vars:
-        prefix: bootstrap-
         delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+        prefix: bootstrap-
+        cluster_token: bootstrap
+        client_port: 2389
+        peer_port: 2390
     - role: vault
       tags: vault
   become: True
