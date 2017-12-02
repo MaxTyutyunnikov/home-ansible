@@ -3,3 +3,5 @@
 prefix: ''
 generate_certs: True
 regenerate_certs: False
+roll_ca: False
+certs_path: /etc/certs/{{ service }}

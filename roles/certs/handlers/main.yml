@@ -1,0 +1,5 @@
+---
+
+- name: Reload local facts
+  setup:
+    gather_subset: "!all,!min,local"

@@ -2,25 +2,26 @@
 
 - import_tasks: fetch_ca.yml
 
-- name: Check if CAs match
-  fail:
-    msg: CAs do not match; please run roll_ca playbook
-  when:
-    - ca_cert | bool
-    - ca_cert != new_ca_cert
+- name: Combine ca certs
+  set_fact:
+    final_ca_cert: "{{ ca_cert }}{{ new_ca_cert }}"
+  when: ca_cert != new_ca_cert
+
+- name: Write single ca certs
+  set_fact:
+    final_ca_cert: "{{ new_ca_cert }}"
+  when: ca_cert == new_ca_cert
 
 - include_tasks: write_fact.yml
-  when: not ca_cert
   loop_control:
     loop_var: fact
   with_items:
     - location: "{{ prefix }}{{ service }}-{{ ca_cert_type }}"
       key: ca
-      data: "{{ new_ca_cert }}"
-
-- meta: flush_handlers
+      data: "{{ final_ca_cert }}"
 
 - name: Write {{ prefix }}{{ service }} {{ ca_cert_type }} ca
   copy:
     dest: "{{ certs_path }}/{{ service }}-{{ ca_cert_type }}-ca.crt"
-    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, ca_cert_type)].ca }}"
+    content: "{{ final_ca_cert }}"
+  notify: Reload local facts

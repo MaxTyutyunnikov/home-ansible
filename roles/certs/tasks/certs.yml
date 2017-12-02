@@ -1,0 +1,16 @@
+---
+
+- import_tasks: generate_certs.yml
+  when: generate_certs
+
+- meta: flush_handlers
+
+- name: Write {{ prefix }}{{ service }} {{ cert_type }} crt
+  copy:
+    dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.crt"
+    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, cert_type)].crt }}"
+
+- name: Write {{ prefix }}{{ service }} {{ cert_type }} key
+  copy:
+    dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.key"
+    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, cert_type)].key }}"

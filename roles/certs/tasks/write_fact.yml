@@ -6,3 +6,4 @@
     location: "{{ fact.location }}"
     key: "{{ fact.key }}"
     data: "{{ fact.data }}"
+  notify: Reload local facts

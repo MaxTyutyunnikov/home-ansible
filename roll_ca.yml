@@ -1,0 +1,31 @@
+---
+
+- name: Roll CA certificates
+  hosts: controllers
+  tasks:
+    - include_role:
+        name: certs
+      vars:
+        delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+        prefix: vault-
+        service: etcd
+        roll_ca: True
+      with_items:
+        - client
+        - peer
+        - server
+      loop_control:
+        loop_var: ca_cert_type
+
+    - include_role:
+        name: certs
+      vars:
+        delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+        service: vault
+        roll_ca: True
+      with_items:
+        - client
+        - server
+      loop_control:
+        loop_var: ca_cert_type
+  become: True

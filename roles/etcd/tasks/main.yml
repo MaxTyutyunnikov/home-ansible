@@ -1,14 +1,6 @@
 ---
-- include_role:
-    name: certs
-  with_items:
-    - client
-    - peer
-    - server
-  vars:
-    service: etcd
-  loop_control:
-    loop_var: cert_type
+
+- import_tasks: certs.yml
 
 - name: etcd container
   docker_container:

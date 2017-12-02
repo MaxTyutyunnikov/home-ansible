@@ -1,0 +1,16 @@
+---
+
+- name: Register current {{ ca_cert_type }} ca
+  set_fact:
+    ca_cert: "{{ ansible_local.get('certs', {}).get('{}{}-{}'.format(prefix, service, ca_cert_type), {}).get('ca') }}"
+
+- name: Fetch {{ ca_cert_type }} ca
+  command: >
+    docker exec vault vault read {{ service }}-{{ ca_cert_type }}-pki/cert/ca
+  register: ca_result
+  changed_when: False
+  delegate_to: "{{ delegate_host | default(omit) }}"
+
+- name: Register new {{ ca_cert_type }} ca
+  set_fact:
+    new_ca_cert: "{{ ca_result.stdout_lines | vault_parse('certificate') }}"

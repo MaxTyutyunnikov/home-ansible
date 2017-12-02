@@ -24,4 +24,6 @@
         peer_port: 2390
     - role: vault
       tags: vault
+      vars:
+        delegate_host: "{{ groups['bootstrap_vault'][0] }}"
   become: True

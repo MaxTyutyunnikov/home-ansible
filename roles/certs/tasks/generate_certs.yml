@@ -5,6 +5,10 @@
   set_fact:
     crt: "{{ ansible_local.get('certs', {}).get('{}{}-{}'.format(prefix, service, cert_type), {}).get('crt') }}"
 
+- name: Register current {{ cert_type }} key
+  set_fact:
+    key: "{{ ansible_local.get('certs', {}).get('{}{}-{}'.format(prefix, service, cert_type), {}).get('key') }}"
+
 - name: Install new {{ cert_type }} cert and key
   block:
     - name: Generate {{ cert_type }} cert
@@ -15,14 +19,35 @@
       register: cert_result
       delegate_to: "{{ delegate_host | default(omit) }}"
 
+    - name: Register new {{ cert_type }} cert
+      set_fact:
+        new_crt: "{{ cert_result.stdout_lines | vault_parse('certificate') }}"
+
+    - name: Register new {{ cert_type }} key
+      set_fact:
+        new_key: "{{ cert_result.stdout_lines | vault_parse('private_key') }}"
+
     - include_tasks: write_fact.yml
       loop_control:
         loop_var: fact
       with_items:
         - location: "{{ prefix }}{{ service }}-{{ cert_type }}"
           key: crt
-          data: "{{ cert_result.stdout_lines | vault_parse('certificate') }}"
+          data: "{{ new_crt }}"
         - location: "{{ prefix }}{{ service }}-{{ cert_type }}"
           key: key
-          data: "{{ cert_result.stdout_lines | vault_parse('private_key') }}"
-  when: not crt or regenerate_certs
+          data: "{{ new_key }}"
+      no_log: True
+
+    - meta: flush_handlers
+
+    - name: Write {{ prefix }}{{ service }} {{ cert_type }} crt
+      copy:
+        dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.crt"
+        content: "{{ new_crt }}"
+
+    - name: Write {{ prefix }}{{ service }} {{ cert_type }} key
+      copy:
+        dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.key"
+        content: "{{ new_key }}"
+  when: (not crt and not key) or regenerate_certs

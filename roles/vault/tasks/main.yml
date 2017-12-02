@@ -1,25 +1,6 @@
 ---
-- include_role:
-    name: certs
-  with_items:
-    - client
-    - server
-  vars:
-    service: vault
-    delegate_host: "{{ groups['bootstrap_vault'][0] }}"
-  loop_control:
-    loop_var: cert_type
 
-- include_role:
-    name: certs
-  with_items:
-    - client
-  vars:
-    service: etcd
-    prefix: vault-
-    delegate_host: "{{ groups['bootstrap_vault'][0] }}"
-  loop_control:
-    loop_var: cert_type
+- import_tasks: certs.yml
 
 - name: Ensure vault config directory exists
   file:

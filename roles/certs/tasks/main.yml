@@ -5,34 +5,16 @@
     state: directory
     path: "{{ certs_path }}"
 
-- include_tasks: ca_cert.yml
-  with_items:
-    - client
-    - server
-  loop_control:
-    loop_var: ca_cert_type
-  when: cert_type != 'peer'
+- name: Roll CA certifications
+  include_tasks: roll_ca.yml
+  when: roll_ca
 
-- include_tasks: ca_cert.yml
-  with_items:
-    - peer
-  loop_control:
-    loop_var: ca_cert_type
-  when: cert_type == 'peer'
+- block:
+    - name: Ensure CA exist
+      include_tasks: ca_cert.yml
+      when: ca_cert_type is defined
 
-- import_tasks: generate_certs.yml
-  when: generate_certs
-
-- name: Reload local facts
-  setup:
-    gather_subset: "!all,!min,local"
-
-- name: Write {{ prefix }}{{ service }} {{ cert_type }} cert
-  copy:
-    dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.crt"
-    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, cert_type)].crt }}"
-
-- name: Write {{ prefix }}{{ service }} {{ cert_type }} key
-  copy:
-    dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.key"
-    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, cert_type)].key }}"
+    - name: Ensure certs exist
+      include_tasks: certs.yml
+      when: ca_cert_type is not defined
+  when: not roll_ca
