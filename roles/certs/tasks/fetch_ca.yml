@@ -2,7 +2,7 @@
 
 - name: Register current {{ ca_cert_type }} ca
   set_fact:
-    ca_cert: "{{ ansible_local.get('certs', {}).get('{}{}-{}'.format(prefix, service, ca_cert_type), {}).get('ca') }}"
+    ca_bundle: "{{ ansible_local.get('certs', {}).get('{}{}-{}'.format(prefix, service, ca_cert_type), {}).get('ca', []) }}"
 
 - name: Fetch {{ ca_cert_type }} ca
   command: >

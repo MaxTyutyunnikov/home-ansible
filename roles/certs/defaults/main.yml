@@ -4,4 +4,5 @@ prefix: ''
 generate_certs: True
 regenerate_certs: False
 roll_ca: False
-certs_path: /etc/certs/{{ service }}
+certs_path: /etc/certs/{{ prefix }}{{ service }}
+remove_old_ca_certs: False

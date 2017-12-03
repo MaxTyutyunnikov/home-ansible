@@ -41,13 +41,4 @@
 
     - meta: flush_handlers
 
-    - name: Write {{ prefix }}{{ service }} {{ cert_type }} crt
-      copy:
-        dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.crt"
-        content: "{{ new_crt }}"
-
-    - name: Write {{ prefix }}{{ service }} {{ cert_type }} key
-      copy:
-        dest: "{{ certs_path }}/{{ service }}-{{ cert_type }}.key"
-        content: "{{ new_key }}"
   when: (not crt and not key) or regenerate_certs

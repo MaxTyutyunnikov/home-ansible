@@ -2,15 +2,26 @@
 
 - import_tasks: fetch_ca.yml
 
-- name: Combine ca certs
+- name: Combine ca bundle
   set_fact:
-    final_ca_cert: "{{ ca_cert }}{{ new_ca_cert }}"
-  when: ca_cert != new_ca_cert
+    final_ca_bundle: "{{ ca_bundle + [new_ca_cert] }}"
+  when:
+    - ca_bundle != []
+    - new_ca_cert not in ca_bundle
 
-- name: Write single ca certs
+- name: Retain ca bundle
   set_fact:
-    final_ca_cert: "{{ new_ca_cert }}"
-  when: ca_cert == new_ca_cert
+    final_ca_bundle: "{{ ca_bundle }}"
+  when:
+    - ca_bundle != []
+    - new_ca_cert in ca_bundle
+    - not remove_old_ca_certs
+
+- name: Write single ca cert
+  set_fact:
+    final_ca_bundle:
+      - "{{ new_ca_cert }}"
+  when: (ca_bundle == []) or (new_ca_cert in ca_bundle and remove_old_ca_certs)
 
 - include_tasks: write_fact.yml
   loop_control:
@@ -18,10 +29,5 @@
   with_items:
     - location: "{{ prefix }}{{ service }}-{{ ca_cert_type }}"
       key: ca
-      data: "{{ final_ca_cert }}"
-
-- name: Write {{ prefix }}{{ service }} {{ ca_cert_type }} ca
-  copy:
-    dest: "{{ certs_path }}/{{ service }}-{{ ca_cert_type }}-ca.crt"
-    content: "{{ final_ca_cert }}"
-  notify: Reload local facts
+      data: "{{ final_ca_bundle }}"
+  no_log: True

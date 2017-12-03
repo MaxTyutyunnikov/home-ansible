@@ -18,7 +18,7 @@
       tags: etcd
       vars:
         delegate_host: "{{ groups['bootstrap_vault'][0] }}"
-        prefix: vault-
+        cert_prefix: vault-
         cluster_token: vault
         client_port: 2389
         peer_port: 2390
@@ -26,4 +26,5 @@
       tags: vault
       vars:
         delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+        prefix: ''
   become: True

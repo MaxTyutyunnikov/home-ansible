@@ -1,6 +1,6 @@
 ---
 
-- name: Update {{ prefix }}{{ service }} {{ cert_type }} {{ fact.key }} fact
+- name: Update {{ prefix }}{{ service }} {{ cert_type | default(ca_cert_type) }} {{ fact.key }} fact
   json_file:
     path: /etc/ansible/facts.d/certs.fact
     location: "{{ fact.location }}"

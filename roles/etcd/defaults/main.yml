@@ -1,7 +1,7 @@
 ---
 
-prefix: ''
+cert_prefix: ''
 client_port: 2379
 peer_port: 2380
 cluster_token: cluster1
-certs_path: /etc/certs/{{ prefix }}etcd
+certs_path: /etc/certs/{{ cert_prefix }}etcd

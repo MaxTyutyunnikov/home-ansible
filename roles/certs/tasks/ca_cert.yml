@@ -6,21 +6,16 @@
   fail:
     msg: CAs do not match; please run roll_ca playbook
   when:
-    - ca_cert | bool
-    - ca_cert != new_ca_cert
+    - ca_bundle != []
+    - new_ca_cert not in ca_bundle
 
 - include_tasks: write_fact.yml
-  when: not ca_cert
   loop_control:
     loop_var: fact
   with_items:
     - location: "{{ prefix }}{{ service }}-{{ ca_cert_type }}"
       key: ca
-      data: "{{ new_ca_cert }}"
-
-- meta: flush_handlers
-
-- name: Write {{ prefix }}{{ service }} {{ ca_cert_type }} ca
-  copy:
-    dest: "{{ certs_path }}/{{ service }}-{{ ca_cert_type }}-ca.crt"
-    content: "{{ ansible_local.certs['{}{}-{}'.format(prefix, service, ca_cert_type)].ca }}"
+      data:
+        - "{{ new_ca_cert }}"
+  no_log: True
+  when: ca_bundle == []
