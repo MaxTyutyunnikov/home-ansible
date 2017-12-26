@@ -26,5 +26,4 @@
       tags: vault
       vars:
         delegate_host: "{{ groups['bootstrap_vault'][0] }}"
-        prefix: ''
   become: True

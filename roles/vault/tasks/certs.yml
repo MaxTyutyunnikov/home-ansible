@@ -9,6 +9,7 @@
     delegate_host: "{{ groups['bootstrap_vault'][0] }}"
   loop_control:
     loop_var: ca_cert_type
+  notify: Reload vault config
 
 - include_role:
     name: certs
@@ -20,6 +21,7 @@
     delegate_host: "{{ groups['bootstrap_vault'][0] }}"
   loop_control:
     loop_var: cert_type
+  notify: Reload vault config
 
 - include_role:
     name: certs
@@ -32,6 +34,7 @@
     delegate_host: "{{ groups['bootstrap_vault'][0] }}"
   loop_control:
     loop_var: ca_cert_type
+  notify: Reload vault config
 
 - include_role:
     name: certs
@@ -43,3 +46,4 @@
     delegate_host: "{{ groups['bootstrap_vault'][0] }}"
   loop_control:
     loop_var: cert_type
+  notify: Reload vault config

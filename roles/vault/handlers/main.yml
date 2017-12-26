@@ -4,3 +4,10 @@
   docker_container:
     name: vault
     restart: True
+
+- name: Reload vault config
+  docker_container:
+    state: stopped
+    name: vault
+    force_kill: True
+    stop_signal: HUP
