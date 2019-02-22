@@ -1,38 +1,17 @@
 ---
-
-- name: Check if ansible_venv exists
+- name: Check if docker venv exists
   stat:
-    path: /opt/ansible
-  register: ansible_venv
+    path: /opt/venv/docker
+  register: venv
 
-# NOTE(SamYaple): This little dance is to ensure we are creating the final
-# virtualenv with the latest version of virtualenv to ensure we only install
-# the latest version of setuptools, pip, and wheel
-- name: Setup virtualenv
-  block:
-    - name: Install virtualenv
-      apt:
-        name: virtualenv
-    - name: Register virtualenv version
-      command: virtualenv --version
-      register: virtualenv_version
-      changed_when: False
-    - name: Create temporary virtualenv
-      command: virtualenv {{ (virtualenv_version.stdout.split('.')[0] | int >= 14) | ternary('--no-setuptools', '') }} /opt/ansible_tmp
-    - name: Install latest virtualenv
-      pip:
-        name: virtualenv
-        virtualenv: /opt/ansible_tmp
-    - name: Create final virtualenv
-      command: "/opt/ansible_tmp/bin/virtualenv /opt/ansible"
-  always:
-    - name: Cleanup temporary virtualenv
-      file:
-        state: absent
-        path: "/opt/ansible_tmp"
-  when: not ansible_venv.stat.exists
+- include_tasks: setup_venv.yaml
+  vars:
+    venv_dest: /opt/venv/docker
+  when: not venv.stat.exists
 
-- name: Install docker in virtualenv
+- name: Install packages
   pip:
-    name: docker
-    virtualenv: /opt/ansible
+    name:
+      - docker-compose
+      - pyopenssl
+    virtualenv: /opt/venv/docker

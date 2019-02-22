@@ -1,0 +1,6 @@
+---
+- name: restart rabbitmq service
+  include_tasks: "{{ role_path }}/../compose.yaml"
+  vars:
+    restarted: True
+    project_src: /opt/service/rabbitmq

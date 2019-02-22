@@ -1,0 +1,23 @@
+version: '3.5'
+
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: {{ docker_rabbitmq }}
+    entrypoint: /bin/bash
+    command: /start.sh
+    hostname: {{ ansible_hostname }}
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 1000000
+    ports:
+      - {{ private_ip }}:4369:4369
+      - {{ private_ip }}:5672:5672
+      - {{ private_ip }}:15672:15672
+      - {{ private_ip }}:25672:25672
+    volumes:
+      - /var/lib/rabbitmq
+      - /opt/service/rabbitmq/start.sh:/start.sh:ro
+      - /opt/service/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - /opt/service/rabbitmq/erlang.cookie:/var/lib/rabbitmq/.erlang.cookie:ro

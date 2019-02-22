@@ -1,0 +1,15 @@
+---
+- name: template {{ service_name }} docker-compose service
+  template:
+    src:  docker-compose.yaml.j2
+    dest: /opt/service/{{ service_name }}/docker-compose.yaml
+  notify:
+    - restart {{ service_name }} service
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- name: start {{ service_name }} service
+  include_tasks: "{{ role_path }}/../compose.yaml"
+  vars:
+    project_src: /opt/service/{{ service_name }}

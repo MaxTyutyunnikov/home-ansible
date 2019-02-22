@@ -1,0 +1,30 @@
+---
+- name: Remove existing venv
+  file:
+    name: "{{ venv_dest }}"
+    state: absent
+
+- set_fact:
+    tmp_venv: /tmp/ansible-venv-tmp-{{ 9999999999999999999999 | random | to_uuid }}
+
+# NOTE(SamYaple): This little dance is to ensure we are creating the final
+# virtualenv with the latest version of virtualenv to ensure we only install
+# the latest version of setuptools, pip, and wheel
+- name: Setup virtualenv
+  block:
+    - name: Install virtualenv
+      apt:
+        name: virtualenv
+    - name: Register virtualenv version
+      command: virtualenv --version
+      register: virtualenv_version
+      changed_when: False
+    - name: Create temporary virtualenv
+      shell: virtualenv {{ (virtualenv_version.stdout.split('.')[0] | int >= 14) | ternary('--no-setuptools', '') }} {{ tmp_venv }}
+    - name: Create final virtualenv
+      shell: "source {{ tmp_venv }}/bin/activate; pip install -U virtualenv; virtualenv {{ venv_dest }}"
+  always:
+    - name: Cleanup temporary virtualenv
+      file:
+        state: absent
+        path: "{{ tmp_venv }}"

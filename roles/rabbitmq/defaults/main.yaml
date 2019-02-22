@@ -1,0 +1,5 @@
+---
+service_seed: blahblahblahblahblahblah
+erlang_cookie: "{{ 9999999999 | random(seed=service_seed) | to_uuid }}"
+
+docker_rabbitmq: rabbitmq

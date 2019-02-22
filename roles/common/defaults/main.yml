@@ -1,17 +1,17 @@
 repositories:
   - filename: base
-    repo: deb http://us.archive.ubuntu.com/ubuntu xenial main universe restricted
+    repo: deb http://us.archive.ubuntu.com/ubuntu bionic main universe restricted
     id: 790BC7277767219C42C86F933B4FE6ACC0B21F32
     keyserver: keyserver.ubuntu.com
   - filename: base
-    repo: deb http://us.archive.ubuntu.com/ubuntu xenial-updates main universe restricted
+    repo: deb http://us.archive.ubuntu.com/ubuntu bionic-updates main universe restricted
     id: 790BC7277767219C42C86F933B4FE6ACC0B21F32
     keyserver: keyserver.ubuntu.com
   - filename: base
-    repo: deb http://security.ubuntu.com/ubuntu xenial-security main universe restricted
+    repo: deb http://security.ubuntu.com/ubuntu bionic-security main universe restricted
     id: 790BC7277767219C42C86F933B4FE6ACC0B21F32
     keyserver: keyserver.ubuntu.com
   - filename: docker
-    repo: deb [arch=amd64] http://download.docker.com/linux/ubuntu xenial stable
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
     id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
     keyserver: keyserver.ubuntu.com

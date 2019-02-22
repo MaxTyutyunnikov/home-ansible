@@ -1,0 +1,26 @@
+---
+- name: ensure rabbitmq service directory exists
+  file:
+    name: /opt/service/rabbitmq
+    state: directory
+    recurse: True
+
+- include_tasks: "{{ role_path }}/../service.yaml"
+  vars:
+    service_name: rabbitmq
+    service_binary: rabbitmq
+    service_templates:
+      - rabbitmq.conf
+    service_files:
+      - start.sh
+    multi_service: False
+
+- name: Set erlang cookie
+  copy:
+    dest: /opt/service/rabbitmq/erlang.cookie
+    content: "{{ erlang_cookie }}"
+    mode: 0400
+
+- include_tasks: "{{ role_path }}/../supercompose.yaml"
+  vars:
+    service_name: rabbitmq

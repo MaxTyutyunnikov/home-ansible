@@ -1,0 +1,8 @@
+---
+- name: Run docker-compose for service
+  docker_service:
+    project_src: "{{ project_src }}"
+    pull: "{{ True if pull is not defined else pull }}"
+    restarted: "{{ True if restarted is defined and restarted else False }}"
+  vars:
+    ansible_python_interpreter: /opt/venv/docker/bin/python

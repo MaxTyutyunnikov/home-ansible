@@ -1,0 +1,3 @@
+---
+private_interface: vlan44
+private_ip: "{{ hostvars[inventory_hostname]['ansible_' ~ private_interface]['ipv4']['address'] }}"
