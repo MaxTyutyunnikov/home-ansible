@@ -1,0 +1,6 @@
+---
+docker_haproxy: haproxy
+docker_keepalived: keepalived
+
+haproxy_stats_user: admin
+haproxy_stats_pass: admin

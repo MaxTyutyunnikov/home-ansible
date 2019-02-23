@@ -1,4 +1,0 @@
----
-
-- debug:
-    msg: "{{ ansible_fact_path }}"

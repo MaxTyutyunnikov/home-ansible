@@ -1,0 +1,31 @@
+---
+- name: ensure haproxy service directory exists
+  file:
+    name: /opt/service/haproxy
+    state: directory
+    recurse: True
+
+- include_tasks: "{{ role_path }}/../service.yaml"
+  vars:
+    service_name: haproxy
+    service_binary: "{{ item.binary }}"
+    service_templates: "{{ item.templates }}"
+    service_files: "{{ item.files }}"
+    multi_service: True
+  with_items:
+    - binary: haproxy
+      templates:
+        - haproxy.cfg
+      files:
+        - Dockerfile
+        - start.sh
+    - binary: keepalived
+      templates:
+        - keepalived.conf
+      files:
+        - Dockerfile
+        - start.sh
+
+- include_tasks: "{{ role_path }}/../supercompose.yaml"
+  vars:
+    service_name: haproxy

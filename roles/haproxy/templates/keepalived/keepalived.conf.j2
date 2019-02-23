@@ -1,0 +1,23 @@
+vrrp_instance VRRP1 {
+  virtual_router_id {{ 255 | random(seed=service_seed) }}
+  advert_int 1
+  priority {{ 255 | random(seed=inventory_hostname) }}
+  nopreempt
+  state BACKUP
+  interface {{ private_interface }}
+  virtual_ipaddress {
+    {{ cluster_vip }} dev {{ private_interface }}
+  }
+  authentication {
+    auth_type PASS
+    auth_pass {{ 9999999999 | random(seed=service_seed) | to_uuid }}
+  }
+  unicast_src_ip {{ private_ip }}
+  unicast_peer {
+  {%- for host in groups['controllers'] %}
+     {% if hostvars[host]['private_ip'] != private_ip %}
+     {{ hostvars[host]['private_ip'] }}
+     {% endif %}
+  {%- endfor %}
+  }
+}

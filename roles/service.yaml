@@ -1,7 +1,13 @@
 ---
+- name: create {{ service_binary }} folder
+  file:
+    state: directory
+    dest: /opt/service/{{ service_name }}/{{ service_binary }}
+  when: multi_service
+
 - name: template {{ service_name }} configs
   template:
-    src:  templates/{{ service_loop_item }}.j2
+    src:  templates/{{ multi_service | ternary(service_binary + '/', '') }}{{ service_loop_item }}.j2
     dest: /opt/service/{{ service_name }}/{{ multi_service | ternary(service_binary + '/', '') }}{{ service_loop_item }}
   loop_control:
     loop_var: service_loop_item
@@ -11,7 +17,7 @@
 
 - name: copy {{ service_name }} configs
   copy:
-    src: files/{{ service_loop_item }}
+    src: files/{{ multi_service | ternary(service_binary + '/', '') }}{{ service_loop_item }}
     dest: /opt/service/{{ service_name }}/{{ multi_service | ternary(service_binary + '/', '') }}{{ service_loop_item }}
   loop_control:
     loop_var: service_loop_item

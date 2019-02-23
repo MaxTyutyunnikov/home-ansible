@@ -1,0 +1,6 @@
+---
+- name: restart haproxy service
+  include_tasks: "{{ role_path }}/../compose.yaml"
+  vars:
+    restarted: True
+    project_src: /opt/service/haproxy

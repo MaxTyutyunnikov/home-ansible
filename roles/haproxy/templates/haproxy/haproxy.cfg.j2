@@ -1,0 +1,145 @@
+global
+  #stats socket /var/lib/haproxy/haproxy.sock mode 0660 group dd-agent level admin
+  # NOTE(SamYaple): "dd-agent" user/group is not available in the container.
+  # loosen the haproxy socket permissions until that issue is figured out
+  stats socket /var/lib/haproxy/haproxy.sock mode 0660 group haproxy level admin
+  log 127.0.0.1 local0 debug
+  daemon
+  group  haproxy
+  user  haproxy
+  maxconn  4000
+  pidfile  /var/lib/haproxy/haproxy.pid
+
+  ssl-default-bind-ciphers DEFAULT:!MEDIUM:!3DES
+  ssl-default-bind-options no-sslv3 no-tlsv10 no-tlsv11
+  tune.ssl.default-dh-param 4096
+
+defaults
+  log global
+  mode http
+  maxconn 4000
+  option redispatch
+  retries 3
+  timeout http-request 1m
+  timeout queue 1m
+  timeout connect 1m
+  timeout client 1m
+  timeout server 1m
+  timeout check 10s
+  balance roundrobin
+
+listen stats
+  bind {{ private_ip }}:1936
+  stats enable
+  stats hide-version
+  stats realm Haproxy\ Statistics
+  stats auth {{ haproxy_stats_user }}:{{ haproxy_stats_pass }}
+  stats uri /
+  stats refresh 15s
+
+listen mariadb
+  bind {{ cluster_vip }}:3306
+  mode tcp
+  option mysql-check user haproxy
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface].ipv4.address }}:3306 check {% if not loop.first %}backup{% endif %}
+
+  {% endfor %}
+
+frontend http_redirector
+  bind {{ cluster_vip }}:80
+  http-request redirect scheme https code 301
+
+frontend https_redirector
+  bind {{ cluster_vip }}:443 ssl crt /etc/haproxy/server.pem
+  option httplog
+  option http-keep-alive
+  option forwardfor
+
+  acl https ssl_fc
+  http-request set-header X-Forwarded-Proto http if !https
+  http-request set-header X-Forwarded-Proto https if https
+
+  # NOTE(SamYaple): Old docs might still be pointed at /horizon instead of /
+  http-request redirect code 301 location https://%[hdr(host)]%[url,regsub(^/horizon,/,)] if { path_beg /horizon }
+
+  acl cinder hdr(host) -i cinder.{{ cluster_url }}
+  acl glance hdr(host) -i glance.{{ cluster_url }}
+  acl keystone hdr(host) -i keystone.{{ cluster_url }}
+  acl neutron hdr(host) -i neutron.{{ cluster_url }}
+  acl nova hdr(host) -i nova.{{ cluster_url }}
+  acl nova-metadata hdr(host) -i nova-metadata.{{ cluster_url }}
+  acl nova-novncproxy hdr(host) -i nova-novncproxy.{{ cluster_url }}
+  acl placement hdr(host) -i placement.{{ cluster_url }}
+
+  use_backend cinder if cinder
+  use_backend glance if glance
+  use_backend keystone if keystone
+  use_backend neutron if neutron
+  use_backend nova if nova
+  use_backend nova-metadata if nova-metadata
+  use_backend nova-novncproxy if nova-novncproxy
+  use_backend nova-placement if nova-placement
+
+  default_backend horizon
+
+backend cinder
+  option  httpchk HEAD /healthcheck
+  http-check expect rstatus 204
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:8776 check ssl ca-file /etc/haproxy/server-ca.pem
+  {% endfor %}
+
+backend glance
+  option  httpchk HEAD /
+  http-check expect rstatus 300
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:9292 check
+  {% endfor %}
+
+backend horizon
+  option  httpchk
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:8443 check ssl ca-file /etc/haproxy/server-ca.pem
+  {% endfor %}
+
+backend keystone
+  option  httpchk HEAD /healthcheck
+  http-check expect rstatus 204
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:5000 check ssl ca-file /etc/haproxy/server-ca.pem
+  {% endfor %}
+
+backend neutron
+  option  httpchk HEAD /healthcheck
+  http-check expect rstatus 204
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:9696 check ssl ca-file /etc/haproxy/server-ca.pem
+  {% endfor %}
+
+backend nova
+  option  httpchk HEAD /healthcheck
+  http-check expect rstatus 204
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:8774 check ssl ca-file /etc/haproxy/server-ca.pem
+  {% endfor %}
+
+backend nova-metadata
+  option  httpchk HEAD /healthcheck
+  http-check expect rstatus 204
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:8775 check ssl ca-file /etc/haproxy/server-ca.pem
+  {% endfor %}
+
+backend nova-novncproxy
+  timeout tunnel 1h
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:6080 check
+  {% endfor %}
+
+backend nova-placement
+  option httpchk HEAD /
+  http-check expect rstatus 405
+  {% for host in groups['controllers'] -%}
+  server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_' ~ private_interface]['ipv4']['address'] }}:8778 check ssl ca-file /etc/haproxy/server-ca.pem
+  {% endfor %}

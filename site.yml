@@ -1,29 +1,19 @@
 ---
-
-- name: Setup bootstrap vault
-  hosts: bootstrap_vault
-  roles:
-    - role: common
-      tags: common
-    - role: bootstrap_vault
-      tags: bootstrap_vault
-  become: True
+# Official Ansible 2 way of gathering facts, regardless of --limit option
+- hosts: controllers
+  become: true
+  pre_tasks:
+    - name: Gathering facts from all controllers
+      setup:
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      when: hostvars[item]['ansible_default_ipv4'] is not defined
+      with_items: "{{ groups['controllers'] }}"
+  tags: always
 
 - name: Setup controllers
   hosts: controllers
   roles:
-    - role: common
-      tags: common
-    - role: etcd
-      tags: etcd
-      vars:
-        delegate_host: "{{ groups['bootstrap_vault'][0] }}"
-        cert_prefix: vault-
-        cluster_token: vault
-        client_port: 2389
-        peer_port: 2390
-    - role: vault
-      tags: vault
-      vars:
-        delegate_host: "{{ groups['bootstrap_vault'][0] }}"
+    - role: rabbitmq
+      tags: rabbitmq
   become: True

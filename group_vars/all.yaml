@@ -1,3 +1,7 @@
 ---
 private_interface: vlan44
-private_ip: "{{ hostvars[inventory_hostname]['ansible_' ~ private_interface]['ipv4']['address'] }}"
+private_ip: "{{ hostvars[inventory_hostname]['ansible_' ~ private_interface].ipv4.address }}"
+
+cluster_url: yapplesauce.com
+cluster_vip: 172.19.1.253
+service_seed: blahblahblahblahblahblah
